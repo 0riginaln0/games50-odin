@@ -16,6 +16,12 @@ TARGET_FPS :: 60
 FONT_SIZE :: 10
 
 /* GAME STATE */
+// TODO: Start,
+//       Game,
+//       Left scored, Right scored,
+//       Left win,    Right win,
+//       
+// ENet multiplayer (One of two players creates locally dedicated server.)
 game_state := "start" // start, game
 
 main :: proc() {
