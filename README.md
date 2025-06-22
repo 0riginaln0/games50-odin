@@ -1,0 +1,1 @@
+To get used to Odin, I decided to take the CS50's Introduction to Game Development course in it.
