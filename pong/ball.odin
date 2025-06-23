@@ -80,15 +80,18 @@ ball_update :: proc(ball: ^Ball, left_paddle, right_paddle: Paddle, dt: f32) {
     case .Left:
         if rl.CheckCollisionRecs(ball.collider, left_paddle.collider) {
             bounce_off_the_paddle(ball, left_paddle)
+            rl.PlaySound(paddle_hit_sound)
         }
     case .Right:
         if rl.CheckCollisionRecs(ball.collider, right_paddle.collider) {
             bounce_off_the_paddle(ball, right_paddle)
+            rl.PlaySound(paddle_hit_sound)
         }
     }
     // Bounce off the roof and floor
     if ball.collider.y <= 0 || (ball.collider.y + BALL_RADIUS * 2) >= CANVAS_SIZE {
         ball.dy *= -1
+        rl.PlaySound(wall_hit_sound)
     }
     ball.collider.x += ball.dx * dt
     ball.collider.y += ball.dy * dt

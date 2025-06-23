@@ -21,10 +21,23 @@ WINNING_SCORE :: 10
 Game_State :: enum { Start, Game, Win }
 game_state: Game_State = .Start
 
+paddle_hit_sound: rl.Sound
+score_sound: rl.Sound
+wall_hit_sound: rl.Sound
+
 main :: proc() {
     rl.SetConfigFlags({.VSYNC_HINT})
     rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, TITLE)
     defer rl.CloseWindow()
+
+    rl.InitAudioDevice()
+    defer rl.CloseAudioDevice()
+    paddle_hit_sound = rl.LoadSound("sounds/paddle_hit.wav")
+    score_sound      = rl.LoadSound("sounds/score.wav")
+    wall_hit_sound   = rl.LoadSound("sounds/wall_hit.wav")
+    defer rl.UnloadSound(paddle_hit_sound)
+    defer rl.UnloadSound(score_sound)
+    defer rl.UnloadSound(wall_hit_sound)
 
     camera := rl.Camera2D { zoom = WINDOW_SIZE / CANVAS_SIZE }
     title_text_width := rl.MeasureText(TITLE, FONT_SIZE)
@@ -79,6 +92,7 @@ main :: proc() {
             ball_update(&ball, left_paddle, right_paddle, dt)
 
             if ball.collider.x + BALL_RADIUS < 0 {
+                rl.PlaySound(score_sound)
                 score_increase_right(&score)
                 ball_reset(&ball)
                 paddle_reset(&left_paddle)
@@ -92,6 +106,7 @@ main :: proc() {
                 ball_activate(&ball)
             }
             if ball.collider.x + BALL_RADIUS > CANVAS_SIZE {
+                rl.PlaySound(score_sound)
                 score_increase_left(&score)
                 ball_reset(&ball)
                 paddle_reset(&left_paddle)
