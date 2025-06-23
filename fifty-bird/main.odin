@@ -16,47 +16,48 @@ BACKGROUND_SCROLL_SPEED :: 30
 GROUND_SCROLL_SPEED :: 60
 BACKGROUND_LOOPING_POINT :: 413
 
-GRAVITY :: 20
-JUMP_VELOCITY :: -5 //-250
+
+GRAVITY :: 980
+JUMP_IMPULSE :: -350
 
 Bird :: struct {
     collider: rl.Rectangle,
-    dy: f32
+    dy: f32,
+    jump_requested: bool,
 }
 
-bird := Bird {}
+bird := Bird{}
 
 bird_init :: proc(bird: ^Bird, x, y, width, height: f32) {
     bird.collider.x = x
     bird.collider.y = y
     bird.collider.width = width
     bird.collider.height = height
+    bird.dy = 0
+    bird.jump_requested = false
 }
 
 bird_draw :: proc(bird: Bird, texture: rl.Texture2D) {
     rl.DrawTexture(texture, i32(bird.collider.x), i32(bird.collider.y), rl.WHITE)
 }
 
-bird_update :: proc(bird: ^Bird, jumped: bool,dt: f32) {
-    // velocity_to_apply: f32 = JUMP_VELOCITY + GRAVITY if jumped else GRAVITY
-
-    // bird.dy += velocity_to_apply * dt
-
+bird_update :: proc(bird: ^Bird, dt: f32) {
     bird.dy += GRAVITY * dt
 
-    if jumped do bird.dy = JUMP_VELOCITY
+    if bird.jump_requested {
+        bird.dy = JUMP_IMPULSE
+        bird.jump_requested = false
+    }
 
-    bird.collider.y += bird.dy
+    bird.collider.y += bird.dy * dt
 }
 
-
 main :: proc() {
-    fmt.println("Hello, World!")
     rl.SetConfigFlags({.VSYNC_HINT})
     rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, TITLE)
     defer rl.CloseWindow()
 
-    camera := rl.Camera2D { zoom = WINDOW_WIDTH / VIRTUAL_WIDTH }
+    camera := rl.Camera2D { zoom = f32(WINDOW_WIDTH) / VIRTUAL_WIDTH }
 
     background_texture := rl.LoadTexture("resources/background.png")
     defer rl.UnloadTexture(background_texture)
@@ -70,22 +71,31 @@ main :: proc() {
     defer rl.UnloadTexture(bird_texture)
     bird_init(
         &bird,
-        f32(VIRTUAL_WIDTH / 2 - (bird_texture.width/2)),
-        f32(VIRTUAL_HEIGHT / 2 - (bird_texture.height/2)),
+        VIRTUAL_WIDTH / 2 - f32(bird_texture.width)/2,
+        VIRTUAL_HEIGHT / 2 - f32(bird_texture.height)/2,
         f32(bird_texture.width),
         f32(bird_texture.height),
     )
 
-
-    dt: f32 = 0
-    rl.SetTargetFPS(60)
+    accumulated_time: f32 = 0
+    fixed_dt: f32 = 1.0 / 60.0
+    rl.SetTargetFPS(rl.GetMonitorRefreshRate(rl.GetCurrentMonitor()))
     for !rl.WindowShouldClose() {
-        dt = rl.GetFrameTime()
+        frame_time := rl.GetFrameTime()
+        accumulated_time += frame_time
 
-        background_scroll = math.remainder(background_scroll + BACKGROUND_SCROLL_SPEED * dt, BACKGROUND_LOOPING_POINT)
-        ground_scroll = math.remainder(ground_scroll + GROUND_SCROLL_SPEED * dt, VIRTUAL_WIDTH)
-        
-        bird_update(&bird, rl.IsKeyPressed(.SPACE), dt)
+        if rl.IsKeyPressed(.SPACE) {
+            bird.jump_requested = true
+        }
+
+        // Fixed timestep physics updates
+        for accumulated_time >= fixed_dt {
+            bird_update(&bird, fixed_dt)
+            accumulated_time -= fixed_dt
+        }
+
+        background_scroll = math.remainder(background_scroll + BACKGROUND_SCROLL_SPEED * frame_time, BACKGROUND_LOOPING_POINT)
+        ground_scroll = math.remainder(ground_scroll + GROUND_SCROLL_SPEED * frame_time, VIRTUAL_WIDTH)
 
         rl.BeginDrawing()
         rl.BeginMode2D(camera)
@@ -99,11 +109,11 @@ main :: proc() {
             ground_texture,
             i32(-ground_scroll)-VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT - ground_texture.height,
             rl.WHITE)
+        
         bird_draw(bird, bird_texture)
         
         rl.DrawFPS(0, 0)
         rl.EndMode2D()
         rl.EndDrawing()
     }
-
 }
