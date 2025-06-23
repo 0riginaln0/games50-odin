@@ -5,8 +5,8 @@ import "core:math/rand"
 import "core:math"
 
 /* BALL */
-Horizontal_Direction :: enum { Left = -1, Right = 1 }
 BALL_RADIUS :: 7
+Horizontal_Direction :: enum { Left = -1, Right = 1 }
 Ball :: struct {
     dx, dy: f32,
     collider: rl.Rectangle,

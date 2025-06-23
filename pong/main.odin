@@ -1,3 +1,4 @@
+// TODO: ENet multiplayer (One of two players creates locally dedicated server.)
 package main
 
 import "core:fmt"
@@ -16,13 +17,9 @@ TARGET_FPS :: 60
 FONT_SIZE :: 10
 
 /* GAME STATE */
-// TODO: Start,
-//       Game,
-//       Left scored, Right scored,
-//       Left win,    Right win,
-//       
-// ENet multiplayer (One of two players creates locally dedicated server.)
-game_state := "start" // start, game
+WINNING_SCORE :: 10
+Game_State :: enum { Start, Game, Win }
+game_state: Game_State = .Start
 
 main :: proc() {
     rl.SetConfigFlags({.VSYNC_HINT})
@@ -37,7 +34,6 @@ main :: proc() {
     for !rl.WindowShouldClose() {
         dt = rl.GetFrameTime()
 
-        // Process input
         left1  := rl.IsKeyPressed(.A)
         right1 := rl.IsKeyPressed(.D)
         left_up := rl.IsKeyDown(.W)
@@ -46,20 +42,26 @@ main :: proc() {
         right_down := rl.IsKeyDown(.DOWN)
         enter_pressed := rl.IsKeyPressed(.ENTER)
 
-        // Update game
-        if game_state == "start" {
+        switch game_state {
+        case .Start:
             if enter_pressed {
                 ball_activate(&ball)
-                game_state = "game"
-                rl.BeginDrawing() // Draw an empty frame 
-                rl.EndDrawing()   // because we need Raylib to update frame counter
+                game_state = .Game
+                rl.BeginDrawing()
+                rl.BeginMode2D(camera)
+                paddle_draw(left_paddle)
+                paddle_draw(right_paddle)
+                ball_draw(ball.collider)
+                score_draw(score)
+                rl.EndMode2D()
+                rl.EndDrawing()
                 continue
             }
-            // Render
+
             rl.ClearBackground(rl.BLACK)
             rl.BeginDrawing()
             rl.BeginMode2D(camera)
-            rl.DrawFPS(0, 0)
+
             rl.DrawText(text = TITLE,
                         posX = (CANVAS_SIZE / 2) - (title_text_width / 2),
                         posY = (FONT_SIZE / 2),
@@ -71,57 +73,103 @@ main :: proc() {
                         posY = (CANVAS_SIZE / 2) - BALL_RADIUS * 2 - FONT_SIZE,
                         fontSize = FONT_SIZE,
                         color = rl.WHITE)
+            
             paddle_draw(left_paddle)
             paddle_draw(right_paddle)
             ball_draw(ball.collider)
             score_draw(score)
+
             rl.EndMode2D()
             rl.EndDrawing()
-        } else if game_state == "game" {
-            if enter_pressed {
-                paddle_reset(&left_paddle)
-                paddle_reset(&right_paddle)
-                ball_reset(&ball)
-                score_reset(&score)
-                game_state = "start"
-                rl.BeginDrawing() // Draw an empty frame 
-                rl.EndDrawing()   // because we need Raylib to update frame counter
-                continue
-            }
-
+        case .Game:
             paddle_update(&left_paddle, left_up, left_down, dt)
             paddle_update(&right_paddle, right_up, right_down, dt)
             ball_update(&ball, left_paddle, right_paddle, dt)
 
             if ball.collider.x + BALL_RADIUS < 0 {
-                fmt.println(ball.collider.x + BALL_RADIUS)
                 score_increase_right(&score)
                 ball_reset(&ball)
                 paddle_reset(&left_paddle)
                 paddle_reset(&right_paddle)
+                if score.y == WINNING_SCORE {
+                    game_state = .Win
+                    rl.BeginDrawing()
+                    rl.EndDrawing()
+                    continue
+                }
                 ball_activate(&ball)
             }
             if ball.collider.x + BALL_RADIUS > CANVAS_SIZE {
-                fmt.println(ball.collider.x + BALL_RADIUS)
                 score_increase_left(&score)
                 ball_reset(&ball)
                 paddle_reset(&left_paddle)
                 paddle_reset(&right_paddle)
+                if score.x == WINNING_SCORE {
+                    game_state = .Win
+                    rl.BeginDrawing()
+                    rl.EndDrawing()
+                    continue
+                }
                 ball_activate(&ball)
             }
 
-            // Render
             rl.ClearBackground(rl.BLACK)
             rl.BeginDrawing()
             rl.BeginMode2D(camera)
 
-            rl.DrawFPS(0, 0)
             rl.DrawText(text = TITLE,
                         posX = (CANVAS_SIZE / 2) - (title_text_width / 2),
                         posY = (FONT_SIZE / 2),
                         fontSize = FONT_SIZE,
                         color = rl.WHITE)
 
+            paddle_draw(left_paddle)
+            paddle_draw(right_paddle)
+            ball_draw(ball.collider)
+            score_draw(score)
+
+            rl.EndMode2D()
+            rl.EndDrawing()
+        case .Win:
+            if enter_pressed {
+                paddle_reset(&left_paddle)
+                paddle_reset(&right_paddle)
+                ball_reset(&ball)
+                score_reset(&score)
+                game_state = .Start
+                rl.BeginDrawing()
+                rl.BeginMode2D(camera)
+                paddle_draw(left_paddle)
+                paddle_draw(right_paddle)
+                ball_draw(ball.collider)
+                score_draw(score)
+                rl.EndMode2D()
+                rl.EndDrawing()
+                continue
+            }
+
+            rl.ClearBackground(rl.BLACK)
+            rl.BeginDrawing()
+            rl.BeginMode2D(camera)
+
+            rl.DrawText(text = TITLE,
+                        posX = (CANVAS_SIZE / 2) - (title_text_width / 2),
+                        posY = (FONT_SIZE / 2),
+                        fontSize = FONT_SIZE,
+                        color = rl.WHITE)
+            winner_message := cstring("Left player wins!") if score.x == 10 else cstring("Right player wins!") 
+            rl.DrawText(text = winner_message,
+                        posX = (CANVAS_SIZE / 2) - (rl.MeasureText(winner_message, FONT_SIZE * 2) / 2),
+                        posY = (CANVAS_SIZE / 4),
+                        fontSize = FONT_SIZE * 2,
+                        color = rl.WHITE)
+            enter_message := cstring("Press ENTER to start again")
+            rl.DrawText(text = enter_message,
+                        posX = (CANVAS_SIZE / 2) - (rl.MeasureText(enter_message, FONT_SIZE) / 2),
+                        posY = (CANVAS_SIZE / 2) - BALL_RADIUS * 2 - FONT_SIZE,
+                        fontSize = FONT_SIZE,
+                        color = rl.WHITE)
+            
             paddle_draw(left_paddle)
             paddle_draw(right_paddle)
             ball_draw(ball.collider)

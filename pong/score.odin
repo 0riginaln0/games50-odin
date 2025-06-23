@@ -4,7 +4,7 @@ import rl "vendor:raylib"
 
 /* SCORE */
 SCORE_PAD :: 15
-score := [2]int{0, 0}
+score := [2]int{9, 9}
 
 score_draw :: proc(score: [2]int) {
     x := score.x
