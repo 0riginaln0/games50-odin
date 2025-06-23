@@ -16,10 +16,25 @@ BACKGROUND_SCROLL_SPEED :: 30
 GROUND_SCROLL_SPEED :: 60
 BACKGROUND_LOOPING_POINT :: 413
 
+Bird :: struct {
+    collider: rl.Rectangle,
+}
+
+bird := Bird {}
+bird_init :: proc(bird: ^Bird, x, y, width, height: f32) {
+    bird.collider.x = x
+    bird.collider.y = y
+    bird.collider.width = width
+    bird.collider.height = height
+}
+bird_draw :: proc(bird: Bird, texture: rl.Texture2D) {
+    rl.DrawTexture(texture, i32(bird.collider.x), i32(bird.collider.y), rl.WHITE)
+}
+
 
 main :: proc() {
     fmt.println("Hello, World!")
-    // rl.SetConfigFlags({.VSYNC_HINT})
+    rl.SetConfigFlags({.VSYNC_HINT})
     rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, TITLE)
     defer rl.CloseWindow()
 
@@ -32,6 +47,17 @@ main :: proc() {
     ground_texture := rl.LoadTexture("resources/ground.png")
     defer rl.UnloadTexture(ground_texture)
     ground_scroll: f32 = 0
+
+    bird_texture := rl.LoadTexture("resources/bird.png")
+    defer rl.UnloadTexture(bird_texture)
+    bird_init(
+        &bird,
+        f32(VIRTUAL_WIDTH / 2 - (bird_texture.width/2)),
+        f32(VIRTUAL_HEIGHT / 2 - (bird_texture.height/2)),
+        f32(bird_texture.width),
+        f32(bird_texture.height),
+    )
+
 
     dt: f32 = 0
     rl.SetTargetFPS(rl.GetMonitorRefreshRate(rl.GetCurrentMonitor()))
@@ -53,6 +79,7 @@ main :: proc() {
             ground_texture,
             i32(-ground_scroll)-VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT - ground_texture.height,
             rl.WHITE)
+        bird_draw(bird, bird_texture)
         
         rl.DrawFPS(0, 0)
         rl.EndMode2D()
