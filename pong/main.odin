@@ -93,14 +93,16 @@ main :: proc() {
             paddle_update(&right_paddle, right_up, right_down, dt)
             ball_update(&ball, left_paddle, right_paddle, dt)
 
-            if ball.collider.x < 0 {
+            if ball.collider.x + BALL_RADIUS < 0 {
+                fmt.println(ball.collider.x + BALL_RADIUS)
                 score_increase_right(&score)
                 ball_reset(&ball)
                 paddle_reset(&left_paddle)
                 paddle_reset(&right_paddle)
                 ball_activate(&ball)
             }
-            if ball.collider.x > CANVAS_SIZE {
+            if ball.collider.x + BALL_RADIUS > CANVAS_SIZE {
+                fmt.println(ball.collider.x + BALL_RADIUS)
                 score_increase_left(&score)
                 ball_reset(&ball)
                 paddle_reset(&left_paddle)
