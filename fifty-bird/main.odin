@@ -12,6 +12,9 @@ VIRTUAL_HEIGHT :: 288
 
 TITLE :: "FIFTY BIRD?!"
 
+BACKGROUND_SCROLL_SPEED :: 30
+GROUND_SCROLL_SPEED :: 60
+BACKGROUND_LOOPING_POINT :: 413
 
 
 main :: proc() {
@@ -24,78 +27,32 @@ main :: proc() {
 
     background_texture := rl.LoadTexture("resources/background.png")
     defer rl.UnloadTexture(background_texture)
-    background_loop_width :: 825
-    scrolling_back_view := rl.Rectangle {
-        x = 0,
-        y = 0,
-        width = background_loop_width,
-        height = VIRTUAL_HEIGHT
-    }
-    scroll_back_counter1 :f32= 0
-    scroll_back_counter2 :f32= background_loop_width
+    background_scroll: f32 = 0
 
     ground_texture := rl.LoadTexture("resources/ground.png")
     defer rl.UnloadTexture(ground_texture)
-    ground_loop_width :: 512
-    scrolling_ground_view := rl.Rectangle {
-        x = 0,
-        y = 0,
-        width = ground_loop_width,
-        height = f32(ground_texture.height)
-    }
-    scroll_ground_counter1 :f32= 0
-    scroll_ground_counter2 :f32= ground_loop_width
+    ground_scroll: f32 = 0
 
     dt: f32 = 0
     rl.SetTargetFPS(rl.GetMonitorRefreshRate(rl.GetCurrentMonitor()))
     for !rl.WindowShouldClose() {
         dt = rl.GetFrameTime()
 
-        scroll_back_counter1 -= 0.2*300*dt
-        scroll_back_counter2 -= 0.2*300*dt
-        if scroll_back_counter1 <= -background_loop_width {
-            scroll_back_counter1 = background_loop_width + scroll_back_counter2
-        }
-        if scroll_back_counter2 <= -background_loop_width {
-            scroll_back_counter2 = background_loop_width + scroll_back_counter1
-        }
-
-        scroll_ground_counter1 -= 0.5*300*dt
-        scroll_ground_counter2 -= 0.5*300*dt
-        if scroll_ground_counter1 <= -ground_loop_width {
-            scroll_ground_counter1 = ground_loop_width + scroll_ground_counter2
-        }
-        if scroll_ground_counter2 <= -ground_loop_width {
-            scroll_ground_counter2 = ground_loop_width + scroll_ground_counter1
-        }
-
-
+        background_scroll = math.remainder(background_scroll + BACKGROUND_SCROLL_SPEED * dt, BACKGROUND_LOOPING_POINT)
+        ground_scroll = math.remainder(ground_scroll + GROUND_SCROLL_SPEED * dt, VIRTUAL_WIDTH)
+        
         rl.BeginDrawing()
         rl.BeginMode2D(camera)
         rl.ClearBackground(rl.BLACK)
 
-        rl.DrawTextureRec(
+        rl.DrawTexture(
             background_texture,
-            scrolling_back_view,
-            { scroll_back_counter1, 0 },
+            i32(-background_scroll)-BACKGROUND_LOOPING_POINT/2, 0,
             rl.WHITE)
-        rl.DrawTextureRec(
-            background_texture,
-            scrolling_back_view,
-            { scroll_back_counter2, 0 },
-            rl.WHITE)
-
-        rl.DrawTextureRec(
+        rl.DrawTexture(
             ground_texture,
-            scrolling_ground_view,
-            { scroll_ground_counter1, f32(VIRTUAL_HEIGHT - ground_texture.height) },
+            i32(-ground_scroll)-VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT - ground_texture.height,
             rl.WHITE)
-        rl.DrawTextureRec(
-            ground_texture,
-            scrolling_ground_view,
-            { scroll_ground_counter2, f32(VIRTUAL_HEIGHT - ground_texture.height) },
-            rl.WHITE)
-
         
         rl.DrawFPS(0, 0)
         rl.EndMode2D()
@@ -103,5 +60,3 @@ main :: proc() {
     }
 
 }
-
-//ярославский проспект 67, 2 подъезд.
