@@ -34,8 +34,6 @@ main :: proc() {
     for !rl.WindowShouldClose() {
         dt = rl.GetFrameTime()
 
-        left1  := rl.IsKeyPressed(.A)
-        right1 := rl.IsKeyPressed(.D)
         left_up := rl.IsKeyDown(.W)
         left_down := rl.IsKeyDown(.S)
         right_up := rl.IsKeyDown(.UP)
@@ -138,12 +136,6 @@ main :: proc() {
                 score_reset(&score)
                 game_state = .Start
                 rl.BeginDrawing()
-                rl.BeginMode2D(camera)
-                paddle_draw(left_paddle)
-                paddle_draw(right_paddle)
-                ball_draw(ball.collider)
-                score_draw(score)
-                rl.EndMode2D()
                 rl.EndDrawing()
                 continue
             }
