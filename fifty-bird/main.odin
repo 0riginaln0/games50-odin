@@ -16,19 +16,37 @@ BACKGROUND_SCROLL_SPEED :: 30
 GROUND_SCROLL_SPEED :: 60
 BACKGROUND_LOOPING_POINT :: 413
 
+GRAVITY :: 20
+JUMP_VELOCITY :: -5 //-250
+
 Bird :: struct {
     collider: rl.Rectangle,
+    dy: f32
 }
 
 bird := Bird {}
+
 bird_init :: proc(bird: ^Bird, x, y, width, height: f32) {
     bird.collider.x = x
     bird.collider.y = y
     bird.collider.width = width
     bird.collider.height = height
 }
+
 bird_draw :: proc(bird: Bird, texture: rl.Texture2D) {
     rl.DrawTexture(texture, i32(bird.collider.x), i32(bird.collider.y), rl.WHITE)
+}
+
+bird_update :: proc(bird: ^Bird, jumped: bool,dt: f32) {
+    // velocity_to_apply: f32 = JUMP_VELOCITY + GRAVITY if jumped else GRAVITY
+
+    // bird.dy += velocity_to_apply * dt
+
+    bird.dy += GRAVITY * dt
+
+    if jumped do bird.dy = JUMP_VELOCITY
+
+    bird.collider.y += bird.dy
 }
 
 
@@ -60,13 +78,15 @@ main :: proc() {
 
 
     dt: f32 = 0
-    rl.SetTargetFPS(rl.GetMonitorRefreshRate(rl.GetCurrentMonitor()))
+    rl.SetTargetFPS(60)
     for !rl.WindowShouldClose() {
         dt = rl.GetFrameTime()
 
         background_scroll = math.remainder(background_scroll + BACKGROUND_SCROLL_SPEED * dt, BACKGROUND_LOOPING_POINT)
         ground_scroll = math.remainder(ground_scroll + GROUND_SCROLL_SPEED * dt, VIRTUAL_WIDTH)
         
+        bird_update(&bird, rl.IsKeyPressed(.SPACE), dt)
+
         rl.BeginDrawing()
         rl.BeginMode2D(camera)
         rl.ClearBackground(rl.BLACK)
