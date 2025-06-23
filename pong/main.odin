@@ -46,12 +46,6 @@ main :: proc() {
                 ball_activate(&ball)
                 game_state = .Game
                 rl.BeginDrawing()
-                rl.BeginMode2D(camera)
-                paddle_draw(left_paddle)
-                paddle_draw(right_paddle)
-                ball_draw(ball.collider)
-                score_draw(score)
-                rl.EndMode2D()
                 rl.EndDrawing()
                 continue
             }
