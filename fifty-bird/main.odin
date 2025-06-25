@@ -57,12 +57,12 @@ Pipe :: struct {
     collider: rl.Rectangle,
     texture: rl.Texture2D,
 }
-
 pipe_init :: proc(pipe: ^Pipe, texture: rl.Texture2D) {
     pipe.texture = texture
     pipe.collider.x = VIRTUAL_WIDTH
     pipe.collider.y = rand.float32_range(VIRTUAL_HEIGHT / 3, VIRTUAL_HEIGHT * 0.87)
     pipe.collider.width = f32(texture.width)
+    pipe.collider.height = f32(texture.height)
 }
 pipe_update :: proc(pipe: ^Pipe, pipe_scroll, dt: f32) {
     pipe.collider.x += pipe_scroll * dt
@@ -70,13 +70,63 @@ pipe_update :: proc(pipe: ^Pipe, pipe_scroll, dt: f32) {
 pipe_draw :: proc(pipe: Pipe) {
     rl.DrawTexture(pipe.texture, i32(pipe.collider.x), i32(pipe.collider.y), rl.WHITE)
 }
-
-pipes_slots: [7]Pipe
 pipes_print :: proc(slice: []Pipe) {
     fmt.print("[")
     for i in slice {fmt.print(i, " ")}
     fmt.println("]")
 }
+
+
+PIPE_HEIGHT :: 288
+PIPE_WIDTH :: 70
+GAP_HEIGHT :: 90
+
+last_y := -PIPE_HEIGHT + rand.float32_range(0, 80) + 20
+
+Pipe_Pair :: struct {
+    upper_pipe: rl.Rectangle,
+    lower_pipe: rl.Rectangle,
+    texture: rl.Texture2D
+}
+pipe_pairs_slots: [7]Pipe_Pair
+pipe_pair_new :: proc(y: f32, pipe_texture: rl.Texture2D) -> Pipe_Pair {
+    collider1: rl.Rectangle = {x=VIRTUAL_WIDTH, y = y, width = f32(pipe_texture.width), height = f32(pipe_texture.height)}
+    collider2: rl.Rectangle = collider1
+    collider2.y += PIPE_HEIGHT + GAP_HEIGHT
+    pipe_pair := Pipe_Pair {
+        upper_pipe = collider1,
+        lower_pipe = collider2,
+        texture = pipe_texture,
+    }
+    return pipe_pair
+}
+pipe_pair_draw :: proc(pipe_pair: Pipe_Pair) {
+    pipe_origin := rl.Vector2{f32(pipe_pair.texture.width/2),f32(pipe_pair.texture.height/2)}
+    upper_dest := pipe_pair.upper_pipe; upper_dest.x += pipe_origin.x; upper_dest.y += pipe_origin.y;
+    rl.DrawTexturePro(
+        pipe_pair.texture,
+        rl.Rectangle{0,0,f32(pipe_pair.texture.width),f32(pipe_pair.texture.height)},
+        upper_dest,
+        rl.Vector2{f32(pipe_pair.texture.width/2),f32(pipe_pair.texture.height/2)},
+        180,
+        rl.WHITE)
+    lower_dest := pipe_pair.lower_pipe; lower_dest.x += pipe_origin.x; lower_dest.y += pipe_origin.y;
+    rl.DrawTexturePro(
+        pipe_pair.texture,
+        rl.Rectangle{0,0,f32(pipe_pair.texture.width),f32(pipe_pair.texture.height)},
+        lower_dest,
+        rl.Vector2{f32(pipe_pair.texture.width/2),f32(pipe_pair.texture.height/2)},
+        0,
+        rl.WHITE)
+    rl.DrawRectangleRec(pipe_pair.upper_pipe, {0, 210, 0, 100})
+    rl.DrawRectangleRec(pipe_pair.lower_pipe, {0, 210, 0, 100})
+}
+pipe_pair_update :: proc(pipe_pair: ^Pipe_Pair, pipe_scroll: f32, fixed_dt: f32) {
+    pipe_pair.upper_pipe.x += pipe_scroll * fixed_dt
+    pipe_pair.lower_pipe.x = pipe_pair.upper_pipe.x
+}
+
+
 
 main :: proc() {
     rl.SetConfigFlags({.VSYNC_HINT})
@@ -107,7 +157,7 @@ main :: proc() {
     defer rl.UnloadTexture(pipe_texture)
     pipe_scroll: f32 = -60
 
-    pipes := slice.into_dynamic(pipes_slots[:])
+    pipe_pairs := slice.into_dynamic(pipe_pairs_slots[:])
 
     spawn_timer: f32 = 0
 
@@ -130,10 +180,10 @@ main :: proc() {
             background_scroll = math.remainder(background_scroll + BACKGROUND_SCROLL_SPEED * fixed_dt, BACKGROUND_LOOPING_POINT)
             ground_scroll = math.remainder(ground_scroll + GROUND_SCROLL_SPEED * fixed_dt, VIRTUAL_WIDTH)
 
-            for &pipe, i in pipes {
-                pipe_update(&pipe, pipe_scroll, fixed_dt)
-                if pipe.collider.x + pipe.collider.width < 0 {
-                    ordered_remove(&pipes, i)
+            for &pipe_pair, i in pipe_pairs {
+                pipe_pair_update(&pipe_pair, pipe_scroll, fixed_dt)
+                if pipe_pair.upper_pipe.x + PIPE_WIDTH < 0 {
+                    ordered_remove(&pipe_pairs, i)
                 }
             }
 
@@ -141,9 +191,20 @@ main :: proc() {
         }
 
         if spawn_timer > 4 {
-            pipe := Pipe {}
-            pipe_init(&pipe, pipe_texture)
-            append(&pipes, pipe)
+            dif:f32 = 0.0
+            if last_y < -230 {
+                dif = rand.float32_range(-20, 80)
+            } else if last_y > -130 {
+                dif = rand.float32_range(-50, 50)
+            } else {
+                dif = rand.float32_range(-80, 20)
+            }
+
+            y:f32 = clamp(last_y + dif, -250, -150)
+            fmt.println("new y", y)
+            last_y = y
+            pipe_pair := pipe_pair_new(y, pipe_texture)
+            append(&pipe_pairs, pipe_pair)
             spawn_timer = 0
         }
 
@@ -155,10 +216,6 @@ main :: proc() {
             background_texture,
             i32(-background_scroll)-BACKGROUND_LOOPING_POINT/2, 0,
             rl.WHITE)
-        
-        for pipe in pipes {
-            pipe_draw(pipe)
-        }
 
         rl.DrawTexture(
             ground_texture,
@@ -166,6 +223,10 @@ main :: proc() {
             rl.WHITE)
         
         bird_draw(bird, bird_texture)
+
+        for pipe_pair in pipe_pairs {
+            pipe_pair_draw(pipe_pair)
+        }
 
         rl.DrawFPS(0, 0)
         rl.EndMode2D()
