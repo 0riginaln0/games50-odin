@@ -20,7 +20,7 @@ BACKGROUND_LOOPING_POINT :: 413
 
 
 GRAVITY :: 980
-JUMP_IMPULSE :: -300 // -350
+JUMP_IMPULSE :: -200 // -250 -300 -350
 
 Bird :: struct {
     collider: rl.Rectangle,
@@ -53,33 +53,9 @@ bird_update :: proc(bird: ^Bird, dt: f32) {
     }
 }
 
-Pipe :: struct {
-    collider: rl.Rectangle,
-    texture: rl.Texture2D,
-}
-pipe_init :: proc(pipe: ^Pipe, texture: rl.Texture2D) {
-    pipe.texture = texture
-    pipe.collider.x = VIRTUAL_WIDTH
-    pipe.collider.y = rand.float32_range(VIRTUAL_HEIGHT / 3, VIRTUAL_HEIGHT * 0.87)
-    pipe.collider.width = f32(texture.width)
-    pipe.collider.height = f32(texture.height)
-}
-pipe_update :: proc(pipe: ^Pipe, pipe_scroll, dt: f32) {
-    pipe.collider.x += pipe_scroll * dt
-}
-pipe_draw :: proc(pipe: Pipe) {
-    rl.DrawTexture(pipe.texture, i32(pipe.collider.x), i32(pipe.collider.y), rl.WHITE)
-}
-pipes_print :: proc(slice: []Pipe) {
-    fmt.print("[")
-    for i in slice {fmt.print(i, " ")}
-    fmt.println("]")
-}
-
-
 PIPE_HEIGHT :: 288
 PIPE_WIDTH :: 70
-GAP_HEIGHT :: 90
+GAP_HEIGHT:f32 = 90
 
 last_y := -PIPE_HEIGHT + rand.float32_range(0, 80) + 20
 
@@ -126,8 +102,6 @@ pipe_pair_update :: proc(pipe_pair: ^Pipe_Pair, pipe_scroll: f32, fixed_dt: f32)
     pipe_pair.lower_pipe.x = pipe_pair.upper_pipe.x
 }
 
-
-
 main :: proc() {
     rl.SetConfigFlags({.VSYNC_HINT})
     rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, TITLE)
@@ -166,7 +140,6 @@ main :: proc() {
     rl.SetTargetFPS(rl.GetMonitorRefreshRate(rl.GetCurrentMonitor()))
     for !rl.WindowShouldClose() {
         frame_time := rl.GetFrameTime()
-        spawn_timer += frame_time
         accumulated_time += frame_time
 
         if rl.IsKeyPressed(.SPACE) || rl.IsMouseButtonPressed(.LEFT) {
@@ -186,11 +159,12 @@ main :: proc() {
                     ordered_remove(&pipe_pairs, i)
                 }
             }
+            spawn_timer += fixed_dt
 
             accumulated_time -= fixed_dt
         }
 
-        if spawn_timer > 4 {
+        if spawn_timer > 3 {
             dif:f32 = 0.0
             if last_y < -230 {
                 dif = rand.float32_range(-20, 80)
@@ -206,6 +180,7 @@ main :: proc() {
             pipe_pair := pipe_pair_new(y, pipe_texture)
             append(&pipe_pairs, pipe_pair)
             spawn_timer = 0
+            GAP_HEIGHT -= 0.5
         }
 
         rl.BeginDrawing()
