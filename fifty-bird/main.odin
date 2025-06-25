@@ -126,17 +126,18 @@ main :: proc() {
         // Fixed timestep physics updates
         for accumulated_time >= fixed_dt {
             bird_update(&bird, fixed_dt)
-            accumulated_time -= fixed_dt
-        }
 
-        background_scroll = math.remainder(background_scroll + BACKGROUND_SCROLL_SPEED * frame_time, BACKGROUND_LOOPING_POINT)
-        ground_scroll = math.remainder(ground_scroll + GROUND_SCROLL_SPEED * frame_time, VIRTUAL_WIDTH)
+            background_scroll = math.remainder(background_scroll + BACKGROUND_SCROLL_SPEED * fixed_dt, BACKGROUND_LOOPING_POINT)
+            ground_scroll = math.remainder(ground_scroll + GROUND_SCROLL_SPEED * fixed_dt, VIRTUAL_WIDTH)
 
-        for &pipe, i in pipes {
-            pipe_update(&pipe, pipe_scroll, fixed_dt)
-            if pipe.collider.x + pipe.collider.width < 0 {
-                ordered_remove(&pipes, i)
+            for &pipe, i in pipes {
+                pipe_update(&pipe, pipe_scroll, fixed_dt)
+                if pipe.collider.x + pipe.collider.width < 0 {
+                    ordered_remove(&pipes, i)
+                }
             }
+
+            accumulated_time -= fixed_dt
         }
 
         if spawn_timer > 4 {
@@ -145,7 +146,6 @@ main :: proc() {
             append(&pipes, pipe)
             spawn_timer = 0
         }
-
 
         rl.BeginDrawing()
         rl.BeginMode2D(camera)
