@@ -22,6 +22,8 @@ BACKGROUND_LOOPING_POINT :: 413
 GRAVITY :: 980
 JUMP_IMPULSE :: -200 // -250 -300 -350
 
+score := 0
+
 Bird :: struct {
     collider: rl.Rectangle,
     dy: f32,
@@ -55,20 +57,21 @@ bird_update :: proc(bird: ^Bird, dt: f32) {
 
 PIPE_HEIGHT :: 288
 PIPE_WIDTH :: 70
-GAP_HEIGHT:f32 = 90
+gap_height:f32 = 90
 
 last_y := -PIPE_HEIGHT + rand.float32_range(0, 80) + 20
 
 Pipe_Pair :: struct {
     upper_pipe: rl.Rectangle,
     lower_pipe: rl.Rectangle,
-    texture: rl.Texture2D
+    texture: rl.Texture2D,
+    passed: bool
 }
 pipe_pairs_slots: [7]Pipe_Pair
 pipe_pair_new :: proc(y: f32, pipe_texture: rl.Texture2D) -> Pipe_Pair {
     collider1: rl.Rectangle = {x=VIRTUAL_WIDTH, y = y, width = f32(pipe_texture.width), height = f32(pipe_texture.height)}
     collider2: rl.Rectangle = collider1
-    collider2.y += PIPE_HEIGHT + GAP_HEIGHT
+    collider2.y += PIPE_HEIGHT + gap_height
     pipe_pair := Pipe_Pair {
         upper_pipe = collider1,
         lower_pipe = collider2,
@@ -158,6 +161,11 @@ main :: proc() {
                 if pipe_pair.upper_pipe.x + PIPE_WIDTH < 0 {
                     ordered_remove(&pipe_pairs, i)
                 }
+                if pipe_pair.passed == false && pipe_pair.upper_pipe.x + pipe_pair.upper_pipe.width / 2 < VIRTUAL_WIDTH / 2 - VIRTUAL_WIDTH / 3 {
+                    pipe_pair.passed = true
+                    score += 1
+                    fmt.println(score)
+                }
             }
             spawn_timer += fixed_dt
 
@@ -175,12 +183,12 @@ main :: proc() {
             }
 
             y:f32 = clamp(last_y + dif, -250, -150)
-            fmt.println("new y", y)
+            // fmt.println("new y", y)
             last_y = y
             pipe_pair := pipe_pair_new(y, pipe_texture)
             append(&pipe_pairs, pipe_pair)
             spawn_timer = 0
-            GAP_HEIGHT -= 0.5
+            gap_height -= 0.5
         }
 
         rl.BeginDrawing()
@@ -192,10 +200,6 @@ main :: proc() {
             i32(-background_scroll)-BACKGROUND_LOOPING_POINT/2, 0,
             rl.WHITE)
 
-        rl.DrawTexture(
-            ground_texture,
-            i32(-ground_scroll)-VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT - ground_texture.height,
-            rl.WHITE)
         
         bird_draw(bird, bird_texture)
 
@@ -203,6 +207,12 @@ main :: proc() {
             pipe_pair_draw(pipe_pair)
         }
 
+
+        rl.DrawTexture(
+            ground_texture,
+            i32(-ground_scroll)-VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT - ground_texture.height,
+            rl.WHITE)
+        
         rl.DrawFPS(0, 0)
         rl.EndMode2D()
         rl.EndDrawing()
